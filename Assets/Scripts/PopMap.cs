@@ -41,11 +41,6 @@ public class PopMap : MonoBehaviour
             float weight = (float)cellPop / (float)maxPopulation;
             float returnValue = ((maxC * weight) + minC);
 
-            if (weight > 0.8f)
-            {
-                Debug.Log($"Weight:{weight}, Float: {returnValue}");
-            }
-
             return returnValue;
         }
 
@@ -61,12 +56,6 @@ public class PopMap : MonoBehaviour
             cell.totalPopulation = Random.Range(minPopulation, maxPopulation);
 
             cellRenderer.cells[i] = cell;
-
-            if(i == 0)
-            {
-                Debug.Log(cellRenderer.cells[i].totalPopulation);
-                Debug.Log($"Cell pop {cell.totalPopulation}");
-            }
         }
     }
 }
