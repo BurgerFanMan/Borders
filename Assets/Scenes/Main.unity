@@ -215,7 +215,7 @@ MonoBehaviour:
       m_Calls:
       - m_Target: {fileID: 1672849884}
         m_TargetAssemblyTypeName: PopMap, Assembly-CSharp
-        m_MethodName: set_intervalInSecondsPub
+        m_MethodName: AutoIterate
         m_Mode: 0
         m_Arguments:
           m_ObjectArgument: {fileID: 0}

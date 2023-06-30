@@ -80,6 +80,11 @@ public class PopMap : MonoBehaviour
 
     public void GeneratePopMap()
     {
+        foreach(Cell cell in cellRenderer.cells)
+        {
+            cell.totalPopulation = 0;
+        }
+
         for(int i = 0; i < startingTiles; i++)
         {
             int index = Random.Range(0, cellRenderer.cells.Count - 1);
@@ -111,20 +116,29 @@ public class PopMap : MonoBehaviour
         iteration += 1;
 
         List<Cell> newPopulatedCells = new List<Cell>();
+        HashSet<Cell> subjectCells = new HashSet<Cell>(cellRenderer.cells);
+
         int maxPop = (int)(maxPopulation * maxPopulationMult);
 
         for (int i = 0; i < tilesPerIteration; i++)
         {
-            int index = Random.Range(0, populatedCells.Count - 1);
+            int index = Random.Range(0, populatedCells.Count);
             Cell cell = populatedCells[index];
 
-            List<Cell> adjacentCells = GetAdjacentCells(cellRenderer.cells.IndexOf(cell));
+            List<Cell> adjacentCells = GetAdjacentCells(cellRenderer.cells.IndexOf(cell), subjectCells);
+            if(adjacentCells.Count == 0)
+            {
+                i -= 1;
+                continue;
+            }
+
             Cell populateCell = adjacentCells[Random.Range(0, adjacentCells.Count)];
 
             bool skipPopulated = Random.Range(0f, 1f) > avoidPopTiles/(float)((float)populateCell.totalPopulation/(float)maxPop);
             if (populateCell.totalPopulation >= maxPop || skipPopulated)
             {
                 i -= 1;
+                subjectCells.Remove(populateCell);
 
                 continue;
             }
@@ -134,7 +148,8 @@ public class PopMap : MonoBehaviour
             populateCell.totalPopulation += population;
             populateCell.totalPopulation = Mathf.Clamp(populateCell.totalPopulation, 0, maxPop); ;
 
-            newPopulatedCells.Add(populateCell);
+            if(!populatedCells.Contains(populateCell))
+                newPopulatedCells.Add(populateCell);
         }
 
         populatedCells.AddRange(newPopulatedCells);
@@ -149,9 +164,9 @@ public class PopMap : MonoBehaviour
         if(!renderWithInterval)
             DisplayPopMap();
 
-        List<Cell> GetAdjacentCells(int index)
+        List<Cell> GetAdjacentCells(int index, HashSet<Cell> checkCells)
         {
-            List<Cell> cells = new List<Cell>();
+            List<Cell> cells = new List<Cell>(4);
 
             if(index > 0)
             cells.Add(cellRenderer.cells[index - 1]);
@@ -162,15 +177,18 @@ public class PopMap : MonoBehaviour
             if(index + width < cellRenderer.cells.Count)
             cells.Add(cellRenderer.cells[index + width]);
 
+            cells.RemoveAll(cell => !checkCells.Contains(cell));
+
             return cells;
         }
 
         void DecayPopulation()
         {
-            foreach(Cell cell in populatedCells)
+            float maxDecay = (float)(maxPopulation * maxPopulationMult * popDecayPercent/1000);
+
+            foreach (Cell cell in populatedCells)
             {
-                cell.totalPopulation -= 
-                    (int)(maxPopulation * maxPopulationMult * (popDecayPercent + Random.Range(-popDecayRange, popDecayRange)))/100;
+                cell.totalPopulation -= (int)(maxDecay * (1f + Random.Range(-popDecayRange, popDecayRange)));
             }
         }
     }
