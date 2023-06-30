@@ -41,7 +41,7 @@ public class CellRenderer : MonoBehaviour
                 else
                     color = Color.white;
 
-                cells.Add(new Cell());
+                cells.Add(new Cell(cells.Count));
                 cellColors.Add(color);
             }
         }
@@ -58,11 +58,19 @@ public class CellRenderer : MonoBehaviour
     }
 }
 
-public struct Cell
+public class Cell
 {
+    public int index;
+
     public float supportLevel;
 
     public int totalPopulation;
     public int supporters;
     public int hostiles;
+
+    public Cell() { }
+    public Cell(int indexInlist)
+    {
+        index = indexInlist;
+    }
 }
