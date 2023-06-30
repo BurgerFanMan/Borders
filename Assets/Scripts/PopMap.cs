@@ -5,6 +5,8 @@ using UnityEngine;
 public class PopMap : MonoBehaviour
 {
     public int maxPopulation;
+    [Range(1f, 300f)]
+    public float maxPopulationMult = 5f;
     public int minPopulation;
     public Color maxColor;
     public Color minColor;
@@ -12,25 +14,35 @@ public class PopMap : MonoBehaviour
     [Header("Population Tiles")]
     [Tooltip("The interval between iterations in seconds.")]
     public float intervalInSeconds = 0.2f;
-    public int maxIterations = 100;
     public int tilesPerIteration = 40;
     public float expandedPopRatio = 1f;
     public float popRatioRange = 0.2f;
     public int startingTiles = 10;
-    [Range(1f, 300f)]
-    public float maxPopulationRatio = 5f;
+    public float avoidPopTiles = 0.5f;
+
+    [Header("Population Decay")]
     [Tooltip("The percentage of max population by which each cell's population decays")]
     [Range(0f, 1f)]
     public float popDecayPercent = 0.1f;
     public float popDecayRange = 0.03f;
 
-    private int iteration;
+    [Header("Performance")]
+    [Range(0.2f, 5f)]
+    public float renderIntervals = 1f;
 
+    public float intervalInSecondsPub { get { return intervalInSeconds; } set { intervalInSeconds = value; } }
+    public int tilesPerIterationPub { get { return tilesPerIteration;  } set { tilesPerIteration = value; } }
+
+    private int iteration = 0;
+    private bool generated = false;
 
     private CellRenderer cellRenderer;
     private List<Cell> populatedCells = new List<Cell>();
 
     private int width;
+
+    //Prevents render on every change, instead regularly re-renders textures
+    private bool renderWithInterval = false;
 
     void Start()
     {
@@ -57,7 +69,7 @@ public class PopMap : MonoBehaviour
 
         float newColor(float maxC, float minC, int cellPop)
         {
-            float weight = (float)cellPop / (float)(maxPopulation * maxPopulationRatio);
+            float weight = (float)cellPop / (float)(maxPopulation * maxPopulationMult);
             float returnValue = ((maxC * weight) + minC);
 
             return returnValue;
@@ -90,27 +102,37 @@ public class PopMap : MonoBehaviour
 
     public void IteratePop()
     {
+        if(!generated)
+        {
+            generated = true;
+            GeneratePopMap();
+        }
+
         iteration += 1;
 
         List<Cell> newPopulatedCells = new List<Cell>();
-        for(int i = 0; i < tilesPerIteration; i++)
+        int maxPop = (int)(maxPopulation * maxPopulationMult);
+
+        for (int i = 0; i < tilesPerIteration; i++)
         {
             int index = Random.Range(0, populatedCells.Count - 1);
             Cell cell = populatedCells[index];
 
-            int population = (int)(cell.totalPopulation * (expandedPopRatio + Random.Range(-popRatioRange, popRatioRange)));
-
             List<Cell> adjacentCells = GetAdjacentCells(cellRenderer.cells.IndexOf(cell));
-
             Cell populateCell = adjacentCells[Random.Range(0, adjacentCells.Count)];
 
-            if (populateCell.totalPopulation >= (int)(maxPopulation * maxPopulationRatio))
+            bool skipPopulated = Random.Range(0f, 1f) > avoidPopTiles/(float)((float)populateCell.totalPopulation/(float)maxPop);
+            if (populateCell.totalPopulation >= maxPop || skipPopulated)
             {
                 i -= 1;
+
                 continue;
             }
 
-            populateCell.totalPopulation += Mathf.Clamp(population, 0, (int)(maxPopulation * maxPopulationRatio));
+            int population = (int)(cell.totalPopulation * (expandedPopRatio + Random.Range(-popRatioRange, popRatioRange)));
+
+            populateCell.totalPopulation += population;
+            populateCell.totalPopulation = Mathf.Clamp(populateCell.totalPopulation, 0, maxPop); ;
 
             newPopulatedCells.Add(populateCell);
         }
@@ -124,7 +146,8 @@ public class PopMap : MonoBehaviour
             cellRenderer.cells[cell.index] = cell;
         }
 
-        DisplayPopMap();
+        if(!renderWithInterval)
+            DisplayPopMap();
 
         List<Cell> GetAdjacentCells(int index)
         {
@@ -147,24 +170,33 @@ public class PopMap : MonoBehaviour
             foreach(Cell cell in populatedCells)
             {
                 cell.totalPopulation -= 
-                    (int)(maxPopulation * maxPopulationRatio * (popDecayPercent + Random.Range(-popDecayRange, popDecayRange)))/100;
+                    (int)(maxPopulation * maxPopulationMult * (popDecayPercent + Random.Range(-popDecayRange, popDecayRange)))/100;
             }
         }
     }
 
-    public void AutoIterate(float timesPerSecond)
+    public void AutoIterate(float intervals)
     {
         CancelInvoke("IteratePop");
-        InvokeRepeating("IteratePop", 0.1f, timesPerSecond);
+        InvokeRepeating("IteratePop", 0.1f, intervals);
 
-        intervalInSeconds = timesPerSecond;
+        intervalInSeconds = intervals;
     }
-
     public void AutoIterate(bool enable)
     {
         if(!enable)
             CancelInvoke("IteratePop");
         else
             InvokeRepeating("IteratePop", 0.1f, intervalInSeconds);
+    }
+
+    public void RenderIntervals(bool enable)
+    {
+        if (!enable)
+            CancelInvoke("DisplayPopMap");
+        else
+            InvokeRepeating("DisplayPopMap", 0.1f, renderIntervals);
+
+        renderWithInterval = enable;
     }
 }
