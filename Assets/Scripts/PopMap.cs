@@ -26,14 +26,10 @@ public class PopMap : MonoBehaviour
     public float popDecayPercent = 0.1f;
     public float popDecayRange = 0.03f;
 
-    [Header("Performance")]
-    [Range(0.2f, 5f)]
-    public float renderIntervals = 1f;
+    public float tilesPerIterationPub { get { return tilesPerIteration;  } set { tilesPerIteration = Mathf.RoundToInt(value); } }
+    public float iterationPub { get { return iteration; } set { iteration = Mathf.RoundToInt(value); } }
 
-    public float intervalInSecondsPub { get { return intervalInSeconds; } set { intervalInSeconds = value; } }
-    public int tilesPerIterationPub { get { return tilesPerIteration;  } set { tilesPerIteration = value; } }
-
-    private int iteration = 0;
+    private int iteration;
     private bool generated = false;
 
     private CellRenderer cellRenderer;
@@ -41,8 +37,7 @@ public class PopMap : MonoBehaviour
 
     private int width;
 
-    //Prevents render on every change, instead regularly re-renders textures
-    private bool renderWithInterval = false;
+    private bool autoIterate;
 
     void Start()
     {
@@ -51,6 +46,7 @@ public class PopMap : MonoBehaviour
         width = cellRenderer.width;
     }
 
+    //Actual rendering of the population map, decently expensive operation
     void DisplayPopMap()
     {
         List<Cell> cells = cellRenderer.cells;
@@ -105,6 +101,7 @@ public class PopMap : MonoBehaviour
         DisplayPopMap();
     }
 
+    //Gets more expensive as more tiles are populated, look for potential fix
     public void IteratePop()
     {
         if(!generated)
@@ -161,8 +158,7 @@ public class PopMap : MonoBehaviour
             cellRenderer.cells[cell.index] = cell;
         }
 
-        if(!renderWithInterval)
-            DisplayPopMap();
+        DisplayPopMap();
 
         List<Cell> GetAdjacentCells(int index, HashSet<Cell> checkCells)
         {
@@ -184,21 +180,32 @@ public class PopMap : MonoBehaviour
 
         void DecayPopulation()
         {
-            float maxDecay = (float)(maxPopulation * maxPopulationMult * popDecayPercent/1000);
+            HashSet<Cell> deadCells = new HashSet<Cell>();
+            float maxDecay = (float)(maxPopulation * maxPopulationMult * popDecayPercent)/100f;
 
             foreach (Cell cell in populatedCells)
             {
                 cell.totalPopulation -= (int)(maxDecay * (1f + Random.Range(-popDecayRange, popDecayRange)));
+
+                if(cell.totalPopulation <= 0)
+                {
+                    cell.totalPopulation = 0;
+                    deadCells.Add(cell);
+                }
             }
+
+            populatedCells.RemoveAll(cell => deadCells.Contains(cell));
         }
     }
 
     public void AutoIterate(float intervals)
     {
-        CancelInvoke("IteratePop");
-        InvokeRepeating("IteratePop", 0.1f, intervals);
-
-        intervalInSeconds = intervals;
+        if (autoIterate)
+        {
+            CancelInvoke("IteratePop");
+            InvokeRepeating("IteratePop", 0.1f, intervals);
+        }
+            intervalInSeconds = intervals;
     }
     public void AutoIterate(bool enable)
     {
@@ -206,15 +213,7 @@ public class PopMap : MonoBehaviour
             CancelInvoke("IteratePop");
         else
             InvokeRepeating("IteratePop", 0.1f, intervalInSeconds);
-    }
 
-    public void RenderIntervals(bool enable)
-    {
-        if (!enable)
-            CancelInvoke("DisplayPopMap");
-        else
-            InvokeRepeating("DisplayPopMap", 0.1f, renderIntervals);
-
-        renderWithInterval = enable;
+        autoIterate = enable;
     }
 }
