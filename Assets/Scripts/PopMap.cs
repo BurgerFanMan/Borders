@@ -18,6 +18,7 @@ public class PopMap : MonoBehaviour
     public float expandedPopRatio = 1f;
     public float popRatioRange = 0.2f;
     public int startingTiles = 10;
+    [Range(0f, 100f)]
     public float avoidPopTiles = 0.5f;
 
     [Header("Population Decay")]
@@ -131,12 +132,13 @@ public class PopMap : MonoBehaviour
 
             Cell populateCell = adjacentCells[Random.Range(0, adjacentCells.Count)];
 
-            bool skipPopulated = Random.Range(0f, 1f) > avoidPopTiles/(float)((float)populateCell.totalPopulation/(float)maxPop);
+            float chanceToSkip = (1f / (float)(populateCell.totalPopulation / (float)maxPop)) - 1f;
+            bool skipPopulated = Random.Range(0f, avoidPopTiles * 4f) > chanceToSkip;
             if (populateCell.totalPopulation >= maxPop || skipPopulated)
             {
-                i -= 1;
                 subjectCells.Remove(populateCell);
 
+                i -= 1;
                 continue;
             }
 
