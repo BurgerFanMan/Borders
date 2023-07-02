@@ -14,10 +14,11 @@ public class PopMap : MonoBehaviour
     [Header("Population Tiles")]
     [Tooltip("The interval between iterations in seconds.")]
     public float intervalInSeconds = 0.2f;
+    [Range(1, 500)]
     public int tilesPerIteration = 40;
+    public int startingTiles = 10;
     public float expandedPopRatio = 1f;
     public float popRatioRange = 0.2f;
-    public int startingTiles = 10;
     [Range(0f, 100f)]
     public float avoidPopTiles = 0.5f;
 
@@ -77,6 +78,8 @@ public class PopMap : MonoBehaviour
 
     public void GeneratePopMap()
     {
+        iteration = 0;
+
         foreach(Cell cell in cellRenderer.cells)
         {
             cell.totalPopulation = 0;
@@ -118,6 +121,7 @@ public class PopMap : MonoBehaviour
 
         int maxPop = (int)(maxPopulation * maxPopulationMult);
 
+        //main part of the method, selects random tiles which are adjacent to populated tiles and adds pop to them
         for (int i = 0; i < tilesPerIteration; i++)
         {
             int index = Random.Range(0, populatedCells.Count);
