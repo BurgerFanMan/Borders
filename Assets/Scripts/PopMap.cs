@@ -29,9 +29,15 @@ public class PopMap : MonoBehaviour
     public float popDecayRange = 0.03f;
 
     public float tilesPerIterationPub { get { return tilesPerIteration;  } set { tilesPerIteration = Mathf.RoundToInt(value); } }
-    public float iterationPub { get { return iteration; } set { iteration = Mathf.RoundToInt(value); } }
+    public float startingTilesPub { get { return startingTiles;  } set { startingTiles = Mathf.RoundToInt(value); } }
+    public float expandedPopRatioPub { get { return expandedPopRatio; } set { expandedPopRatio = value; } }
+    public float popRatioRangePub { get { return popRatioRange; } set { popRatioRange = value; } }
+    public float avoidPopTilesPub { get { return avoidPopTiles; } set { avoidPopTiles = value; } }
+    public float popDecayPercentPub { get { return popDecayPercent; } set { popDecayPercent = value; } }
 
-    private int iteration;
+    public event BasicEventHandler onIterate;
+    public event BasicEventHandler onGenerate;
+
     private bool generated = false;
 
     private CellRenderer cellRenderer;
@@ -78,8 +84,6 @@ public class PopMap : MonoBehaviour
 
     public void GeneratePopMap()
     {
-        iteration = 0;
-
         foreach(Cell cell in cellRenderer.cells)
         {
             cell.totalPopulation = 0;
@@ -102,7 +106,10 @@ public class PopMap : MonoBehaviour
             populatedCells.Add(cellRenderer.cells[index]);
         }
 
+        onGenerate.Invoke();
         DisplayPopMap();
+
+        generated = true;
     }
 
     //Gets more expensive as more tiles are populated, look for potential fix
@@ -113,8 +120,6 @@ public class PopMap : MonoBehaviour
             generated = true;
             GeneratePopMap();
         }
-
-        iteration += 1;
 
         List<Cell> newPopulatedCells = new List<Cell>();
         HashSet<Cell> subjectCells = new HashSet<Cell>(cellRenderer.cells);
@@ -147,6 +152,7 @@ public class PopMap : MonoBehaviour
             }
 
             int population = (int)(cell.totalPopulation * (expandedPopRatio + Random.Range(-popRatioRange, popRatioRange)));
+            population = population < 0 ? 0 : population;
 
             populateCell.totalPopulation += population;
             populateCell.totalPopulation = Mathf.Clamp(populateCell.totalPopulation, 0, maxPop); ;
@@ -202,6 +208,8 @@ public class PopMap : MonoBehaviour
 
             populatedCells.RemoveAll(cell => deadCells.Contains(cell));
         }
+
+        onIterate.Invoke();
     }
 
     public void AutoIterate(float intervals)
@@ -223,3 +231,5 @@ public class PopMap : MonoBehaviour
         autoIterate = enable;
     }
 }
+
+public delegate void BasicEventHandler();

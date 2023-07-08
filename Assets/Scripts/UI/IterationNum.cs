@@ -3,20 +3,19 @@ using System.Collections.Generic;
 using UnityEngine;
 using TMPro;
 
-public class IterationNum : MonoBehaviour
+public class IterationNum : InfoClass
 {
-    public string suffixText;
-    private TMP_Text text;
-    private PopMap popMap;
-
-    void Start()
+    int iteration = 0;
+    protected override void OnIterate()
     {
-        popMap = FindObjectOfType<PopMap>();
-        text = GetComponent<TMP_Text>();
+       iteration++;
+       text.text = $"{suffixText}{iteration}";
     }
 
-    void Update()
+    protected override void OnGenerate()
     {
-       text.text = $"{suffixText}{popMap.iterationPub}";
+        iteration = -1;
+
+        OnIterate();
     }
 }
